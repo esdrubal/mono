@@ -241,6 +241,8 @@ typedef struct MonoAotCompile {
 	GHashTable *objc_selector_to_index;
 	FILE *logfile;
 	FILE *instances_logfile;
+	FILE *seq_points_file;
+	gboolean seq_points_file_fail;
 } MonoAotCompile;
 
 typedef struct {
@@ -5403,6 +5405,7 @@ emit_exception_debug_info (MonoAotCompile *acfg, MonoCompile *cfg)
 	MonoMethod *method;
 	int i, k, buf_size, method_index;
 	guint32 debug_info_size, seq_points_size;
+	gboolean seq_points_to_file;
 	guint8 *code;
 	MonoMethodHeader *header;
 	guint8 *p, *buf, *debug_info;
@@ -5425,15 +5428,18 @@ emit_exception_debug_info (MonoAotCompile *acfg, MonoCompile *cfg)
 	}
 
 	seq_points = cfg->seq_point_info;
-
 	seq_points_size = (cfg->gen_seq_points)? seq_point_info_get_write_size (seq_points) : 0;
+	seq_points_to_file = !cfg->gen_seq_points_debug_data;
 
-	buf_size = header->num_clauses * 256 + debug_info_size + 2048 + seq_points_size + cfg->gc_map_size;
+	buf_size = header->num_clauses * 256 + debug_info_size + 2048 + cfg->gc_map_size;
+	if (seq_points)
+		buf_size += seq_points_to_file? 8 : seq_points_size;
+
 	p = buf = g_malloc (buf_size);
 
 	use_unwind_ops = cfg->unwind_ops != NULL;
 
-	flags = (jinfo->has_generic_jit_info ? 1 : 0) | (use_unwind_ops ? 2 : 0) | (header->num_clauses ? 4 : 0) | (seq_points ? 8 : 0) | (cfg->compile_llvm ? 16 : 0) | (jinfo->has_try_block_holes ? 32 : 0) | (cfg->gc_map ? 64 : 0) | (jinfo->has_arch_eh_info ? 128 : 0);
+	flags = (jinfo->has_generic_jit_info ? 1 : 0) | (use_unwind_ops ? 2 : 0) | (header->num_clauses ? 4 : 0) | (seq_points ? 8 : 0) | (cfg->compile_llvm ? 16 : 0) | (jinfo->has_try_block_holes ? 32 : 0) | (cfg->gc_map ? 64 : 0) | (jinfo->has_arch_eh_info ? 128 : 0) | (seq_points_to_file ? 256 : 0);
 
 	encode_value (flags, p, &p);
 
@@ -5634,8 +5640,38 @@ emit_exception_debug_info (MonoAotCompile *acfg, MonoCompile *cfg)
 		}
 	}
 
-	if (seq_points)
-		p += seq_point_info_write (seq_points, p);
+	if (seq_points) {
+		if (!seq_points_to_file) {
+			p += seq_point_info_write (seq_points, p);
+		} else {
+			int size = 0;
+			fpos_t pos;
+
+			if (!acfg->seq_points_file && !acfg->seq_points_file_fail) {
+				char *seq_points_aot_file;
+				mono_image_get_aot_seq_point_path (acfg->image, &seq_points_aot_file);
+				acfg->seq_points_file = fopen (seq_points_aot_file, "w+");
+
+				if (!acfg->seq_points_file) {
+					acfg->seq_points_file_fail = TRUE;
+					g_error ("Cannot save sequence points because of a failure while opening %s\n", seq_points_aot_file);
+				}
+				g_free (seq_points_aot_file);
+			}
+
+			if (!acfg->seq_points_file_fail && !fgetpos (acfg->seq_points_file, &pos)) {
+				guint8 *seq_points_buf = g_malloc (seq_points_size);
+				size = seq_point_info_write (seq_points, seq_points_buf);
+				fwrite (seq_points_buf, 1, size, acfg->seq_points_file);
+				g_free (seq_points_buf);
+			}
+
+			// Store size and position so aot-runtime can retrieve the data from sequence points aot file later
+			encode_value (size, p, &p);
+			if (size)
+				encode_value (pos, p, &p);
+		}
+	}
 
 	g_assert (debug_info_size < buf_size);
 
@@ -7796,6 +7832,9 @@ emit_exception_info (MonoAotCompile *acfg)
 	char symbol [256];
 	gint32 *offsets;
 
+	acfg->seq_points_file = 0;
+	acfg->seq_points_file_fail = 0;
+
 	offsets = g_new0 (gint32, acfg->nmethods);
 	for (i = 0; i < acfg->nmethods; ++i) {
 		if (acfg->cfgs [i]) {
@@ -7805,6 +7844,9 @@ emit_exception_info (MonoAotCompile *acfg)
 			offsets [i] = 0;
 		}
 	}
+
+	if (acfg->seq_points_file)
+		fclose (acfg->seq_points_file);
 
 	sprintf (symbol, "ex_info_offsets");
 	emit_section_change (acfg, RODATA_SECT, 1);

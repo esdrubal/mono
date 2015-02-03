@@ -643,3 +643,11 @@ bb_deduplicate_op_il_seq_points (MonoCompile *cfg, MonoBasicBlock *bb)
 		MONO_REMOVE_INS (bb, prev);
 	};
 }
+
+void
+mono_image_get_aot_seq_point_path (MonoImage *image, char **str)
+{
+	int size = strlen (image->name) + strlen (SEQ_POINT_AOT_EXT) + 1;
+	*str = g_malloc (size);
+	g_sprintf (*str, "%s%s", image->name, SEQ_POINT_AOT_EXT);
+}

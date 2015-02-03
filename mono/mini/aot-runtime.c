@@ -2555,7 +2555,7 @@ decode_exception_debug_info (MonoAotModule *amodule, MonoDomain *domain,
 	MonoJitInfoFlags flags = JIT_INFO_NONE;
 	guint unwind_info, eflags;
 	gboolean has_generic_jit_info, has_dwarf_unwind_info, has_clauses, has_seq_points, has_try_block_holes, has_arch_eh_jit_info;
-	gboolean from_llvm, has_gc_map;
+	gboolean from_llvm, has_gc_map, seq_points_to_file;
 	guint8 *p;
 	int generic_info_size, try_holes_info_size, num_holes, arch_eh_jit_info_size;
 	int this_reg = 0, this_offset = 0;
@@ -2574,6 +2574,7 @@ decode_exception_debug_info (MonoAotModule *amodule, MonoDomain *domain,
 	has_try_block_holes = (eflags & 32) != 0;
 	has_gc_map = (eflags & 64) != 0;
 	has_arch_eh_jit_info = (eflags & 128) != 0;
+	seq_points_to_file = (eflags & 256) != 0;
 
 	if (has_dwarf_unwind_info) {
 		unwind_info = decode_value (p, &p);
@@ -2781,13 +2782,37 @@ decode_exception_debug_info (MonoAotModule *amodule, MonoDomain *domain,
 	}
 
 	if (method && has_seq_points) {
-		MonoSeqPointInfo *seq_points;
+		MonoSeqPointInfo *seq_points = NULL;
+		if (!seq_points_to_file) {
+			p += seq_point_info_read (&seq_points, p, FALSE);
+		} else {
+			int size = decode_value (p, &p);
+			if (size) {
+				fpos_t pos = decode_value (p, &p);
+				char *seq_points_aot_file;
+				FILE *f;
 
-		p += seq_point_info_read (&seq_points, p, FALSE);
+				mono_image_get_aot_seq_point_path (amodule->assembly->image, &seq_points_aot_file);
+				f = fopen (seq_points_aot_file, "r");
+				g_free (seq_points_aot_file);
 
-		mono_domain_lock (domain);
-		g_hash_table_insert (domain_jit_info (domain)->seq_points, method, seq_points);
-		mono_domain_unlock (domain);
+				if (f && !fseek (f, pos, SEEK_SET)) {
+					guint8 *seq_points_buf = g_malloc (size);
+
+					fread (seq_points_buf, 1, size, f);
+					fclose (f);
+
+					seq_point_info_read (&seq_points, seq_points_buf, TRUE);
+					g_free (seq_points_buf);
+				}
+			}
+		}
+
+		if (seq_points) {
+			mono_domain_lock (domain);
+			g_hash_table_insert (domain_jit_info (domain)->seq_points, method, seq_points);
+			mono_domain_unlock (domain);
+		}
 	}
 
 	/* Load debug info */

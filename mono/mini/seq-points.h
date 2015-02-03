@@ -12,6 +12,8 @@
 #define METHOD_ENTRY_IL_OFFSET -1
 #define METHOD_EXIT_IL_OFFSET 0xffffff
 
+#define SEQ_POINT_AOT_EXT ".msym"
+
 /* Native offset used to mark seq points in dead code */
 #define SEQ_POINT_NATIVE_OFFSET_DEAD_CODE -1
 
@@ -73,5 +75,8 @@ seq_point_info_get_write_size (MonoSeqPointInfo* info);
 
 void
 bb_deduplicate_op_il_seq_points (MonoCompile *cfg, MonoBasicBlock *bb);
+
+void
+mono_image_get_aot_seq_point_path (MonoImage *image, char **str);
 
 #endif /* __MONO_SEQ_POINTS_H__ */
