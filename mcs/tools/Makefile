@@ -48,7 +48,7 @@ net_4_0_dirs := \
 	security	\
 	mdbrebase	\
 	ikdasm		\
-	symbolicate
+	mono-symbolicate
 
 net_2_0_dirs := \
 	$(per_profile_dirs)
