@@ -424,6 +424,15 @@ namespace MonoTests.System
 		
 			}
 
+			[Test]
+			public void ConvertTimeToUtc_Overflow ()
+			{
+				var res = TimeZoneInfo.ConvertTimeToUtc (new DateTime (0));
+				Assert.AreEqual (res.Kind, DateTimeKind.Utc, "#1");
+
+				res = TimeZoneInfo.ConvertTimeToUtc (DateTime.MaxValue);
+				Assert.AreEqual (res.Kind, DateTimeKind.Utc, "#2");
+			}
 
 			[Test]
 			public void ConvertFromToLocal ()

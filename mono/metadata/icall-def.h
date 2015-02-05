@@ -138,8 +138,7 @@ ICALL_TYPE(TZONE, "System.CurrentSystemTimeZone", TZONE_1)
 ICALL(TZONE_1, "GetTimeZoneData", ves_icall_System_CurrentSystemTimeZone_GetTimeZoneData)
 
 ICALL_TYPE(DTIME, "System.DateTime", DTIME_1)
-ICALL(DTIME_1, "GetNow", mono_100ns_datetime)
-ICALL(DTIME_2, "GetTimeMonotonic", mono_100ns_ticks)
+ICALL(DTIME_1, "GetSystemTimeAsFileTime", mono_100ns_datetime)
 
 #ifndef DISABLE_DECIMAL
 ICALL_TYPE(DECIMAL, "System.Decimal", DECIMAL_1)
@@ -270,6 +269,9 @@ ICALL(GC_7, "get_MaxGeneration", mono_gc_max_generation)
 ICALL(GC_9, "get_ephemeron_tombstone", ves_icall_System_GC_get_ephemeron_tombstone)
 ICALL(GC_8, "register_ephemeron_array", ves_icall_System_GC_register_ephemeron_array)
 
+ICALL_TYPE(CALDATA, "System.Globalization.CalendarData", CALDATA_1)
+ICALL(CALDATA_1, "fill_calendar_data", ves_icall_System_Globalization_CalendarData_fill_calendar_data)
+
 ICALL_TYPE(CHARINFO, "System.Globalization.CharUnicodeInfo", CHARINFO_1)
 ICALL(CHARINFO_1, "GetDataTablePointers", ves_icall_System_Globalization_CharUnicodeInfo_GetDataTablePointers)
 
@@ -281,8 +283,10 @@ ICALL(COMPINF_4, "internal_compare(string,int,int,string,int,int,System.Globaliz
 ICALL(COMPINF_5, "internal_index(string,int,int,char,System.Globalization.CompareOptions,bool)", ves_icall_System_Globalization_CompareInfo_internal_index_char)
 ICALL(COMPINF_6, "internal_index(string,int,int,string,System.Globalization.CompareOptions,bool)", ves_icall_System_Globalization_CompareInfo_internal_index)
 
-ICALL_TYPE(CULINF, "System.Globalization.CultureInfo", CULINF_2)
-ICALL(CULINF_2, "construct_datetime_format", ves_icall_System_Globalization_CultureInfo_construct_datetime_format)
+ICALL_TYPE(CULDATA, "System.Globalization.CultureData", CULDATA_1)
+ICALL(CULDATA_1, "fill_culture_data", ves_icall_System_Globalization_CultureData_fill_culture_data)
+
+ICALL_TYPE(CULINF, "System.Globalization.CultureInfo", CULINF_5)
 ICALL(CULINF_5, "construct_internal_locale_from_lcid", ves_icall_System_Globalization_CultureInfo_construct_internal_locale_from_lcid)
 ICALL(CULINF_6, "construct_internal_locale_from_name", ves_icall_System_Globalization_CultureInfo_construct_internal_locale_from_name)
 ICALL(CULINF_8, "construct_number_format", ves_icall_System_Globalization_CultureInfo_construct_number_format)
@@ -923,6 +927,9 @@ ICALL(THREADP_3, "GetMinThreads", ves_icall_System_Threading_ThreadPool_GetMinTh
 ICALL(THREADP_35, "SetMaxThreads", ves_icall_System_Threading_ThreadPool_SetMaxThreads)
 ICALL(THREADP_4, "SetMinThreads", ves_icall_System_Threading_ThreadPool_SetMinThreads)
 ICALL(THREADP_5, "pool_queue", icall_append_job)
+
+ICALL_TYPE(TTIMER, "System.Threading.Timer", TTIMER_1)
+ICALL(TTIMER_1, "GetTimeMonotonic", mono_100ns_ticks)
 
 ICALL_TYPE(VOLATILE, "System.Threading.Volatile", VOLATILE_28)
 ICALL(VOLATILE_28, "Read(T&)", ves_icall_System_Threading_Volatile_Read_T)
