@@ -77,6 +77,7 @@
 #include <mono/metadata/verify-internals.h>
 #include <mono/metadata/runtime.h>
 #include <mono/metadata/file-mmap.h>
+#include <mono/metadata/seq-points-data.h>
 #include <mono/io-layer/io-layer.h>
 #include <mono/utils/strtod.h>
 #include <mono/utils/monobitset.h>
@@ -7675,6 +7676,16 @@ ves_icall_System_ComponentModel_Win32Exception_W32ErrorMessage (guint32 code)
 	}
 	
 	return message;
+}
+
+ICALL_EXPORT int
+ves_icall_System_StackFrame_GetILOffsetFromFile (MonoString *path, int methodToken, int nativeOffset)
+{
+	guint32 il_offset;
+	if (seq_point_data_get_il_offset (mono_string_to_utf8 (path), methodToken, nativeOffset, &il_offset))
+		return il_offset;
+
+	return -1;
 }
 
 #ifndef DISABLE_ICALL_TABLES
