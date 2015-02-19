@@ -8391,4 +8391,3 @@ mono_register_jit_icall (gconstpointer func, const char *name, MonoMethodSignatu
 {
 	return mono_register_jit_icall_full (func, name, sig, is_save, NULL);
 }
-

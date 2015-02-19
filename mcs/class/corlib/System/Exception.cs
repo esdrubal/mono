@@ -210,7 +210,7 @@ namespace System
 					GetFullNameForStackTrace (sb, frame.GetMethod ());
 
 					if (frame.GetILOffset () == -1)
-						sb.AppendFormat ("<0x{0:x5} + 0x{1:x5}> ", frame.GetMethodAddress (), frame.GetNativeOffset ());
+						sb.AppendFormat (" <0x{0:x5} + 0x{1:x5}> ", frame.GetMethodAddress (), frame.GetNativeOffset ());
 					else
 						sb.AppendFormat (" [0x{0:x5}] ", frame.GetILOffset ());
 
