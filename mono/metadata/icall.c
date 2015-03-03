@@ -7682,10 +7682,14 @@ ICALL_EXPORT int
 ves_icall_System_StackFrame_GetILOffsetFromFile (MonoString *path, int methodToken, int nativeOffset)
 {
 	guint32 il_offset;
-	if (seq_point_data_get_il_offset (mono_string_to_utf8 (path), methodToken, nativeOffset, &il_offset))
-		return il_offset;
+	char *path_str = mono_string_to_utf8 (path);
 
-	return -1;
+	if (!seq_point_data_get_il_offset (path_str, methodToken, nativeOffset, &il_offset))
+		il_offset = -1;
+
+	g_free (path_str);
+
+	return il_offset;
 }
 
 #ifndef DISABLE_ICALL_TABLES
