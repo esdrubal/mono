@@ -3480,18 +3480,6 @@ namespace MonoTests.System.Net.Sockets
 			s.Close ();
 		}
 
-		static bool? supportsPortReuse;
-		static bool SupportsPortReuse ()
-		{
-			if (supportsPortReuse.HasValue)
-				return supportsPortReuse.Value;
-
-			supportsPortReuse = (bool) typeof (Socket).GetMethod ("SupportsPortReuse",
-					BindingFlags.Static | BindingFlags.NonPublic)
-					.Invoke (null, new object [] {});
-			return supportsPortReuse.Value;
-		}
-
 		// Test case for bug #31557
 		[Test]
 		public void TcpDoubleBind ()
@@ -3500,12 +3488,19 @@ namespace MonoTests.System.Net.Sockets
 						SocketType.Stream, ProtocolType.Tcp))
 			using (Socket ss = new Socket (AddressFamily.InterNetwork,
 						SocketType.Stream, ProtocolType.Tcp)) {
-				s.SetSocketOption (SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+				var supportsReuseAddress = true;
+				try {
+					s.SetSocketOption (SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+				} catch (SocketException e) {
+					// Exception is thrown when ReuseAddress is not supported
+					supportsReuseAddress = false;
+				}
 
 				s.Bind (new IPEndPoint (IPAddress.Any, 12345));
 				s.Listen(1);
 
-				ss.SetSocketOption (SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+				if (supportsReuseAddress)
+					ss.SetSocketOption (SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
 
 				Exception ex = null;
 				try {
@@ -3515,7 +3510,7 @@ namespace MonoTests.System.Net.Sockets
 					ex = e;
 				}
 
-				Assert.AreEqual (SupportsPortReuse (), ex == null);
+				Assert.AreEqual (supportsReuseAddress, ex == null);
 			}
 		}
 
