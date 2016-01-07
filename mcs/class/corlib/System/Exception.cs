@@ -70,6 +70,7 @@ namespace System
 		internal StackTrace[] captured_traces;
 		IntPtr[] native_trace_ips;
 		object dynamic_methods;
+		SafeSerializationManager _safeSerializationManager;
 		#endregion
 #pragma warning restore 169, 649
 
@@ -104,6 +105,8 @@ namespace System
 			} catch (SerializationException) {
 				// member did not exist in .NET 1.x
 			}
+
+			_safeSerializationManager = info.GetValueNoThrow("SafeSerializationManager", typeof(SafeSerializationManager)) as SafeSerializationManager;
 		}
 
 		public Exception (string message, Exception innerException)
@@ -161,10 +164,8 @@ namespace System
 		
 		[MonoTODO]
 		protected event EventHandler<SafeSerializationEventArgs> SerializeObjectState {
-			add {
-			}
-			remove {
-			}
+			add { _safeSerializationManager.SerializeObjectState += value; }
+			remove { _safeSerializationManager.SerializeObjectState -= value; }
 		}
 
 		public virtual string Source {
@@ -257,6 +258,26 @@ namespace System
 			info.AddValue ("Source", Source);
 			info.AddValue ("ExceptionMethod", null);
 			info.AddValue ("Data", _data, typeof (IDictionary));
+
+			if (_safeSerializationManager == null)
+				_safeSerializationManager = new SafeSerializationManager();
+
+			if (_safeSerializationManager.IsActive)
+			{
+				info.AddValue("SafeSerializationManager", _safeSerializationManager, typeof(SafeSerializationManager));
+ 
+				// Handle serializing any transparent or partial trust subclass data
+				_safeSerializationManager.CompleteSerialization(this, info, context);
+			}
+		}
+
+		[OnDeserialized]
+		private void OnDeserialized(StreamingContext context)
+		{
+			if (_safeSerializationManager == null)
+				_safeSerializationManager = new SafeSerializationManager();
+
+			_safeSerializationManager.CompleteDeserialization(this);
 		}
 
 		public override string ToString ()

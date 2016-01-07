@@ -261,6 +261,7 @@ struct _MonoException {
 	MonoArray  *native_trace_ips;
 	/* Dynamic methods referenced by the stack trace */
 	MonoObject *dynamic_methods;
+	MonoObject *safe_serialization_manager;
 };
 
 typedef struct {
